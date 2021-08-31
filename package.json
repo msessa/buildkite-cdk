@@ -6,7 +6,10 @@
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
-    "test": "jest"
+    "test": "npm run test:unit",
+    "test:unit": "jest --group=test/unit",
+    "test:integration": "jest --group=test/integration",
+    "generate": "graphql-codegen"
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.120.0",
@@ -15,13 +18,23 @@
     "@aws-cdk/aws-lambda": "^1.120.0",
     "@aws-cdk/aws-lambda-nodejs": "^1.120.0",
     "@aws-cdk/aws-logs": "^1.120.0",
+    "@aws-cdk/aws-secretsmanager": "^1.120.0",
+    "@aws-cdk/aws-ssm": "^1.120.0",
     "@aws-cdk/core": "^1.120.0",
     "@aws-cdk/custom-resources": "^1.120.0",
+    "@graphql-codegen/cli": "^2.1.1",
+    "@graphql-codegen/typescript": "^2.1.2",
+    "@graphql-codegen/typescript-graphql-request": "^4.1.2",
+    "@graphql-codegen/typescript-operations": "^2.1.2",
+    "@types/aws-lambda": "^8.10.83",
     "@types/jest": "^26.0.10",
     "@types/node": "10.17.27",
+    "aws-lambda": "^1.0.6",
     "esbuild": "^0.12.24",
+    "graphql-request": "^3.5.0",
     "gts": "^3.1.0",
     "jest": "^26.4.2",
+    "jest-runner-groups": "^2.1.0",
     "ts-jest": "^26.2.0",
     "typescript": "^3.9.10"
   },
@@ -29,5 +42,9 @@
     "@aws-cdk/aws-cloudformation": "^1.120.0",
     "@aws-cdk/aws-lambda": "^1.120.0",
     "@aws-cdk/core": "^1.120.0"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.978.0",
+    "graphql": "^15.5.1"
   }
 }

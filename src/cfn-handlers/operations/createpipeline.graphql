@@ -1,0 +1,19 @@
+mutation CreatePipeline(
+    $orgId: ID!,
+    $pipelineName: String!,
+    $description: String,
+    $repositoryUrl: String!,
+    $yamlSteps: String!
+){
+    pipelineCreate(input: {
+        organizationId: $orgId,
+        name: $pipelineName,
+        repository: {url: $repositoryUrl},
+        steps: {yaml: $yamlSteps},
+        description: $description,
+    }) {
+        pipeline {
+            id
+        }
+    }
+}

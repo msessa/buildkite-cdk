@@ -11,3 +11,4 @@ cdk.out
 # Editors
 .idea
 .vscode
+remote-schema.graphql

@@ -1,0 +1,15 @@
+# graphql-codegen configuration
+# generate a Buildkite SDK based on the provided operations and introspection of the live API
+# note - you need to provide a valid graphql-enabled token in the BUILDKITE_API_TOKEN env var to regenerate
+
+documents: './src/**/*.graphql'
+schema:
+  - https://graphql.buildkite.com/v1:
+      headers:
+        Authorization: "Bearer ${BUILDKITE_API_TOKEN}"
+generates:
+  ./src/cfn-handlers/codegen/buildkite-api/api.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+      - typescript-graphql-request

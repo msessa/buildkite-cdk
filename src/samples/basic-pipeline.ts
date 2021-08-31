@@ -1,5 +1,6 @@
 import * as cdk from '@aws-cdk/core';
 import * as cdkbk from '../lib';
+import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
 
 const app = new cdk.App({
   autoSynth: true,
@@ -11,7 +12,9 @@ const app = new cdk.App({
 const stack = new cdk.Stack(app, 'sample-app-stack');
 
 new cdkbk.CfnBuildkitePipeline(stack, 'BasicPipeline', {
-  pipelineName: 'my-basic-pipeline',
-  repository: 'git@github.com:service-victoria/sample.git',
+  apiTokenSecret: secretsmanager.Secret.fromSecretNameV2(stack, 'ApiToken', 'buildkite-api-token'),
+  orgSlug: 'service-victoria',
+  pipelineName: 'xxx-my-basic-pipeline',
+  repository: 'git@github.com:service-victoria/updating.git',
   configuration: '',
 });

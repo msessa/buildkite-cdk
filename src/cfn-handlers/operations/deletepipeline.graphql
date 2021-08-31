@@ -1,0 +1,7 @@
+mutation DeletePipeline($pipelineId: ID!) {
+    pipelineDelete(input: {
+        id: $pipelineId,
+    }) {
+        deletedPipelineID
+    }
+}

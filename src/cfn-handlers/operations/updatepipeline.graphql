@@ -1,0 +1,19 @@
+mutation UpdatePipeline(
+    $pipelineId: ID!,
+    $pipelineName: String!,
+    $description: String,
+    $repositoryUrl: String!,
+    $yamlSteps: String!)
+{
+    pipelineUpdate(input: {
+        id: $pipelineId,
+        name: $pipelineName,
+        repository: {url: $repositoryUrl},
+        steps: {yaml: $yamlSteps},
+        description: $description,
+    }) {
+        pipeline {
+            id
+        }
+    }
+}

@@ -1,0 +1,15 @@
+{
+  "name": "IntelliJ Remote Schema",
+  "schemaPath": "remote-schema.graphql",
+  "extensions": {
+    "endpoints": {
+      "Buildkite GraphQL API": {
+        "url": "https://graphql.buildkite.com/v1",
+        "headers": {
+          "Authorization": "Bearer ${env:BUILDKITE_API_TOKEN}"
+        },
+        "introspect": true
+      }
+    }
+  }
+}

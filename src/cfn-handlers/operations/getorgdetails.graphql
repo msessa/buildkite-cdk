@@ -1,0 +1,5 @@
+query GetOrganizationDetails($slug: ID!) {
+    organization(slug: $slug) {
+        id
+    }
+}
