@@ -1,5 +1,5 @@
 import * as cdk from '@aws-cdk/core';
-import * as cdkbk from '../lib';
+import * as cdkbk from '../../index';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
 
 const app = new cdk.App({

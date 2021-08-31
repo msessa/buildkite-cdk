@@ -8,7 +8,7 @@ schema:
       headers:
         Authorization: "Bearer ${BUILDKITE_API_TOKEN}"
 generates:
-  ./src/cfn-handlers/codegen/buildkite-api/api.ts:
+  ./src/handler/codegen/buildkite-api/api.ts:
     plugins:
       - typescript
       - typescript-operations

@@ -4,7 +4,7 @@ import * as cr from '@aws-cdk/custom-resources';
 import * as lambdanodejs from '@aws-cdk/aws-lambda-nodejs';
 import * as path from 'path';
 import * as secretsmanager from '@aws-cdk/aws-secretsmanager';
-import {PipelineResourceProps} from '../../cfn-handlers/main';
+import {PipelineResourceProps} from '../../../handler/main';
 
 export interface CfnBuildkitePipelineProps {
   readonly apiTokenSecret: secretsmanager.ISecret;
@@ -36,7 +36,7 @@ export class CfnBuildkitePipeline extends cdk.Construct {
 
     const onEventFunc = new lambdanodejs.NodejsFunction(this, 'Handler', {
       runtime: lambda.Runtime.NODEJS_14_X,
-      entry: path.join(__dirname, '../../cfn-handlers/main.js'),
+      entry: path.join(__dirname, '../../handler/main.js'),
       handler: 'on_event',
       timeout: cdk.Duration.seconds(15),
     });
