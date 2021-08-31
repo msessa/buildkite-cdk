@@ -34,9 +34,10 @@
     "typescript": "^3.9.10"
   },
   "peerDependencies": {
-    "@aws-cdk/aws-cloudformation": "^1.120.0",
-    "@aws-cdk/aws-lambda": "^1.120.0",
-    "@aws-cdk/core": "^1.120.0"
+    "@aws-cdk/aws-lambda-nodejs": "^1.120.0",
+    "@aws-cdk/aws-secretsmanager": "^1.120.0",
+    "@aws-cdk/core": "^1.120.0",
+    "@aws-cdk/custom-resources": "^1.120.0"
   },
   "dependencies": {
     "aws-sdk": "^2.978.0",
