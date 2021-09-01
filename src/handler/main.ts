@@ -1,165 +1,61 @@
 import * as api from './codegen/buildkite-api/api';
-import {GraphQLClient} from 'graphql-request';
-import * as aws from 'aws-sdk';
-import * as assert from 'assert';
 import {
-  CloudFormationCustomResourceCreateEvent,
-  CloudFormationCustomResourceDeleteEvent,
-  CloudFormationCustomResourceEvent,
-  CloudFormationCustomResourceResponse,
-  CloudFormationCustomResourceUpdateEvent,
-  Context,
-} from 'aws-lambda';
+  PipelineHandler,
+  PipelineResourceDeleteEvent,
+  PipelineResourceEvent,
+  PipelineResourceUpdateEvent,
+} from './resources/pipeline';
+import {CloudFormationCustomResourceEvent, CloudFormationCustomResourceResponse} from 'aws-lambda';
+import {assertEnvVarIsDefined} from './utils';
+import {getAuthenticatedClient, getSecretsManagerSecret, getSecretsManagerSecretValue} from './setup';
 
-export async function getSecretsManagerSecret(
-  secretArn: string,
-  version?: string
-): Promise<aws.SecretsManager.GetSecretValueResponse> {
-  const sm = new aws.SecretsManager();
-  return sm
-    .getSecretValue({
-      SecretId: secretArn,
-      VersionId: version,
-    })
-    .promise();
-}
-
-export function getSecretsManagerSecretValue(r: aws.SecretsManager.GetSecretValueResponse): string {
-  if (r.SecretString) {
-    return r.SecretString;
-  } else {
-    throw new Error('unable to extract secret value from response');
-  }
-}
-
-export interface PipelineResourceProps {
-  ApiTokenSecretArn: string;
-  ServiceToken: string;
-  Organization: string;
-  RepositoryURL: string;
-  YAMLSteps: string;
-  PipelineName: string;
-}
-
-export interface PipelineResourceCreateEvent extends CloudFormationCustomResourceCreateEvent {
-  ResourceProperties: PipelineResourceProps;
-}
-
-function assertParamIsDefined<T>(paramName: string, val: T): asserts val is NonNullable<T> {
-  if (val === undefined || val === null) {
-    throw new Error(`Expected '${paramName}' to be defined, but received ${val}`);
-  }
-}
-
-export async function on_create(
-  client: api.Sdk,
-  event: PipelineResourceCreateEvent,
-  context?: Context
-): Promise<Partial<CloudFormationCustomResourceResponse>> {
-  const organisationSlug = event.ResourceProperties.Organization;
-  assertParamIsDefined('Organization', organisationSlug);
-  const repositoryUrl = event.ResourceProperties.RepositoryURL;
-  assertParamIsDefined('RepositoryURL', repositoryUrl);
-  const yamlSteps = event.ResourceProperties.YAMLSteps;
-  assertParamIsDefined('YAMLSteps', yamlSteps);
-  const pipelineName = event.ResourceProperties.PipelineName;
-  assertParamIsDefined('PipelineName', pipelineName);
-
-  // Retrieve the organisation ID
-  const orgDetResp = await client.GetOrganizationDetails({slug: organisationSlug});
-  assert(orgDetResp.organization?.id);
-  const orgId = orgDetResp.organization.id;
-
-  const createPipelineResp = await client.CreatePipeline({
-    pipelineName: pipelineName,
-    orgId: orgId,
-    repositoryUrl: repositoryUrl,
-    yamlSteps: yamlSteps,
-  });
-  assert(createPipelineResp.pipelineCreate);
-
-  return {
-    PhysicalResourceId: createPipelineResp.pipelineCreate.pipeline.id,
-  };
-}
-
-export async function on_update(
-  client: api.Sdk,
-  event: CloudFormationCustomResourceUpdateEvent,
-  context?: Context
-): Promise<Partial<CloudFormationCustomResourceResponse>> {
-  const repositoryUrl = event.ResourceProperties.RepositoryURL;
-  assertParamIsDefined('RepositoryURL', repositoryUrl);
-  const yamlSteps = event.ResourceProperties.YAMLSteps;
-  assertParamIsDefined('YAMLSteps', yamlSteps);
-  const pipelineName = event.ResourceProperties.PipelineName;
-  assertParamIsDefined('PipelineName', pipelineName);
-
-  const pipelineId = event.PhysicalResourceId;
-
-  const updatePipelineResp = await client.UpdatePipeline({
-    pipelineId: pipelineId,
-    pipelineName: pipelineName,
-    repositoryUrl: repositoryUrl,
-    yamlSteps: yamlSteps,
-  });
-  assert(updatePipelineResp.pipelineUpdate);
-
-  return {
-    PhysicalResourceId: updatePipelineResp.pipelineUpdate.pipeline.id,
-  };
-}
-
-export async function on_delete(
-  client: api.Sdk,
-  event: CloudFormationCustomResourceDeleteEvent,
-  context?: Context
-): Promise<Partial<CloudFormationCustomResourceResponse>> {
-  const pipelineId = event.PhysicalResourceId;
-
-  const deletePipelineResp = await client.DeletePipeline({
-    pipelineId: pipelineId,
-  });
-  assert(deletePipelineResp.pipelineDelete);
-
-  return {
-    PhysicalResourceId: deletePipelineResp.pipelineDelete.deletedPipelineID,
-  };
-}
-
-export async function setup(event: CloudFormationCustomResourceEvent, context?: Context): Promise<api.Sdk> {
-  const secretArn = event.ResourceProperties.ApiTokenSecretArn;
-  assertParamIsDefined('ApiTokenSecretArn', secretArn);
-
-  // Retrieve API Token from SecretsManager Secret
-  const bearerToken = getSecretsManagerSecretValue(await getSecretsManagerSecret(secretArn));
-
-  // Initialise authenticated GraphQL client
-  const client = new GraphQLClient('https://graphql.buildkite.com/v1', {
-    headers: {
-      Authorization: `Bearer ${bearerToken}`,
-    },
-  });
-
-  // Get an instance of the autogenerated sdk
-  return api.getSdk(client);
-}
-
+/**
+ * on_event is the entrypoint of the lambda function
+ *
+ * it requires the following env vars:
+ * - `BUILDKITE_API_TOKEN_SECRET_ARN`: a partial or full ARN of the secretsmanager secret containing the api token
+ *
+ * it does the following:
+ * - retrieve the buildkite api token from aws secretsmanager
+ * - setup an authenticated graphql client to communicate with the buildkite api
+ * - route the event to the appropriate resource handlers based on the ResourceType and RequestType event parameters
+ */
 export async function on_event(
-  event: CloudFormationCustomResourceEvent,
-  context?: Context
+  event: CloudFormationCustomResourceEvent
 ): Promise<Partial<CloudFormationCustomResourceResponse>> {
-  // Setup a Buildkite GrapQL Client
-  const cl = await setup(event, context);
+  let client: api.Sdk;
+  try {
+    const tokenArn = assertEnvVarIsDefined('BUILDKITE_API_TOKEN_SECRET_ARN');
 
+    // Retrieve the Buildkite API token
+    const apiToken = getSecretsManagerSecretValue(await getSecretsManagerSecret(tokenArn));
+
+    // Setup a Buildkite GrapQL Client
+    client = await getAuthenticatedClient(apiToken);
+    if (!client) {
+      throw Error('failed to initialize graphql client');
+    }
+  } catch (err) {
+    throw new Error(`While setting up client: ${err}`);
+  }
+
+  const resourceType = event.ResourceType;
   const requestType = event.RequestType;
 
-  switch (requestType) {
-    case 'Create':
-      return await on_create(cl, event as PipelineResourceCreateEvent, context);
-    case 'Update':
-      return await on_update(cl, event as CloudFormationCustomResourceUpdateEvent, context);
-    case 'Delete':
-      return await on_delete(cl, event as CloudFormationCustomResourceDeleteEvent, context);
+  try {
+    if (resourceType === PipelineHandler.RESOURCE_TYPE) {
+      const pipelineHandler = new PipelineHandler(client, event as PipelineResourceEvent);
+      switch (requestType) {
+        case 'Create':
+          return await pipelineHandler.on_create();
+        case 'Update':
+          return await pipelineHandler.on_update((event as PipelineResourceUpdateEvent).PhysicalResourceId);
+        case 'Delete':
+          return await pipelineHandler.on_delete((event as PipelineResourceDeleteEvent).PhysicalResourceId);
+      }
+    }
+  } catch (err) {
+    throw new Error(`While executing handler: ${err}`);
   }
+  throw new Error(`Resource of type '${resourceType}' is not supported`);
 }

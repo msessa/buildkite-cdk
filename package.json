@@ -1,11 +1,12 @@
 {
-  "name": "cdk-buildkite",
+  "name": "buildkite-cdk",
   "version": "0.1.0",
   "main": "dist/lib/index.js",
   "types": "src/lib/index.d.ts",
   "scripts": {
     "build": "tsc",
     "watch": "tsc -w",
+    "lint": "eslint .",
     "test": "npm run test:unit",
     "test:unit": "jest --group=test/unit",
     "test:integration": "jest --group=test/integration",
@@ -13,10 +14,12 @@
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.120.0",
+    "@aws-cdk/aws-lambda": "^1.120.0",
     "@aws-cdk/aws-lambda-nodejs": "^1.120.0",
     "@aws-cdk/aws-secretsmanager": "^1.120.0",
     "@aws-cdk/core": "^1.120.0",
     "@aws-cdk/custom-resources": "^1.120.0",
+    "@aws-cdk/pipelines": "^1.120.0",
     "@graphql-codegen/cli": "^2.1.1",
     "@graphql-codegen/typescript": "^2.1.2",
     "@graphql-codegen/typescript-graphql-request": "^4.1.2",

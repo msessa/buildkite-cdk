@@ -1,1 +1,1 @@
-export * from './constructs/layer1/pipeline';
+export * from './constructs/layer1/provider';
